@@ -62,6 +62,7 @@ export class GenAiMayanTranslatorFunctionsPipelineStack extends Stack {
             resources: ['*']
         }));
 
+        // Create dev stage with the configuration from props
         const devStage = pipeline.addStage(new GenAiMayanTranslatorFunctionsStage(this, 'Dev', {
             env: {
                 account: props.configuration.accounts.dev,

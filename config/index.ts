@@ -14,54 +14,61 @@ const defaultConfig = {
 
 // Function to create parameters in a stack
 export const createParameters = (scope: Construct) => {
-    // Create parameters with default values if they don't exist
+    // Create parameters with default values
     const createParam = (name: string, defaultValue: string): string => {
         const paramName = `/gen-ai-mayan/${name}`;
-        try {
-            // Try to get existing parameter
-            return StringParameter.valueForStringParameter(scope, paramName);
-        } catch (e) {
-            // If parameter doesn't exist, create it
-            new StringParameter(scope, `Param${name.replace(/[^a-zA-Z0-9]/g, '')}`, {
-                parameterName: paramName,
-                stringValue: process.env[`PARAM_${name.replace(/[^a-zA-Z0-9]/g, '_').toUpperCase()}`] || defaultValue,
-                description: `Parameter for ${name}`
-            });
-            return paramName;
-        }
+        const envVarName = `PARAM_${name.replace(/[^a-zA-Z0-9]/g, '_').toUpperCase()}`;
+        const paramValue = process.env[envVarName] || defaultValue;
+        
+        new StringParameter(scope, `Param${name.replace(/[^a-zA-Z0-9]/g, '')}`, {
+            parameterName: paramName,
+            stringValue: paramValue,
+            description: `Parameter for ${name}`
+        });
+        
+        return paramValue; // Return the value, not the name
     };
 
+    // Create all parameters and return their values
+    const devAccountId = createParam('accounts/dev', defaultConfig.devAccountId);
+    const qaAccountId = createParam('accounts/qa', defaultConfig.qaAccountId);
+    const prodAccountId = createParam('accounts/prod', defaultConfig.prodAccountId);
+    const region = createParam('region', defaultConfig.region);
+    const apiDomainName = createParam('api/domainName', defaultConfig.apiDomainName);
+    const apiSubdomainName = createParam('api/subdomainName', defaultConfig.apiSubdomainName);
+
+    // Return the configuration object with the actual values
     return {
-        devAccountId: createParam('accounts/dev', defaultConfig.devAccountId),
-        qaAccountId: createParam('accounts/qa', defaultConfig.qaAccountId),
-        prodAccountId: createParam('accounts/prod', defaultConfig.prodAccountId),
-        region: createParam('region', defaultConfig.region),
-        apiDomainName: createParam('api/domainName', defaultConfig.apiDomainName),
-        apiSubdomainName: createParam('api/subdomainName', defaultConfig.apiSubdomainName)
+        stackName: 'gen-ai-mayan-translator-functions',
+        apiDomainName,
+        apiSubdomainName,
+        accounts: {
+            dev: devAccountId,
+            qa: qaAccountId,
+            prod: prodAccountId
+        },
+        region
     };
 };
 
-// Function to get configuration (for use in stacks)
-export const getConfiguration = (scope: Construct): Configuration => {
-    // Get parameter value or fall back to environment variable or default
-    const getParam = (name: string, defaultValue: string): string => {
-        try {
-            return StringParameter.valueForStringParameter(scope, `/gen-ai-mayan/${name}`);
-        } catch (e) {
-            // Fall back to environment variable or default
-            return process.env[`PARAM_${name.replace(/[^a-zA-Z0-9]/g, '_').toUpperCase()}`] || defaultValue;
-        }
-    };
-
+// Function to get configuration (for use in other stacks)
+export const getConfiguration = (): Configuration => {
+    // For other stacks, we'll use the default values or environment variables
+    // The actual values will be passed as props from the main stack
     return {
         stackName: 'gen-ai-mayan-translator-functions',
-        apiDomainName: getParam('api/domainName', defaultConfig.apiDomainName),
-        apiSubdomainName: getParam('api/subdomainName', defaultConfig.apiSubdomainName),
+        apiDomainName: process.env.PARAM_API_DOMAINNAME || defaultConfig.apiDomainName,
+        apiSubdomainName: process.env.PARAM_API_SUBDOMAINNAME || defaultConfig.apiSubdomainName,
         accounts: {
-            dev: getParam('accounts/dev', defaultConfig.devAccountId),
-            qa: getParam('accounts/qa', defaultConfig.qaAccountId),
-            prod: getParam('accounts/prod', defaultConfig.prodAccountId)
+            dev: process.env.PARAM_ACCOUNTS_DEV || defaultConfig.devAccountId,
+            qa: process.env.PARAM_ACCOUNTS_QA || defaultConfig.qaAccountId,
+            prod: process.env.PARAM_ACCOUNTS_PROD || defaultConfig.prodAccountId
         },
-        region: getParam('region', defaultConfig.region)
+        region: process.env.PARAM_REGION || defaultConfig.region
     };
+};
+
+// Function to create all parameters and return the configuration
+export const setupParametersAndGetConfig = (scope: Construct): Configuration => {
+    return createParameters(scope);
 };
