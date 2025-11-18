@@ -51,7 +51,33 @@ export const createParameters = (scope: Construct) => {
     };
 };
 
-// Function to get configuration (for use in other stacks)
+// Function to get configuration from SSM (for use in other stacks)
+export const getConfigurationFromSSM = (scope: Construct): Configuration => {
+    // Read from SSM Parameter Store
+    const getParam = (name: string, defaultValue: string): string => {
+        const paramName = `/gen-ai-mayan/${name}`;
+        try {
+            return StringParameter.valueForStringParameter(scope, paramName);
+        } catch (e) {
+            // Fall back to environment variable or default
+            return process.env[`PARAM_${name.replace(/[^a-zA-Z0-9]/g, '_').toUpperCase()}`] || defaultValue;
+        }
+    };
+
+    return {
+        stackName: 'gen-ai-mayan-translator-functions',
+        apiDomainName: getParam('api/domainName', defaultConfig.apiDomainName),
+        apiSubdomainName: getParam('api/subdomainName', defaultConfig.apiSubdomainName),
+        accounts: {
+            dev: getParam('accounts/dev', defaultConfig.devAccountId),
+            qa: getParam('accounts/qa', defaultConfig.qaAccountId),
+            prod: getParam('accounts/prod', defaultConfig.prodAccountId)
+        },
+        region: getParam('region', defaultConfig.region)
+    };
+};
+
+// Function to get configuration (for use without SSM)
 export const getConfiguration = (): Configuration => {
     // For other stacks, we'll use the default values or environment variables
     // The actual values will be passed as props from the main stack
