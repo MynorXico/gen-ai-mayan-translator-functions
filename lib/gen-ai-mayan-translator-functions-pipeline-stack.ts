@@ -22,7 +22,15 @@ export class GenAiMayanTranslatorFunctionsPipelineStack extends Stack {
                     'npm ci',
                     'npm run build',
                     'npx cdk synth'
-                ]
+                ],
+                env: {
+                    PARAM_ACCOUNTS_DEV: props.configuration.accounts.dev,
+                    PARAM_ACCOUNTS_QA: props.configuration.accounts.qa,
+                    PARAM_ACCOUNTS_PROD: props.configuration.accounts.prod,
+                    PARAM_REGION: props.configuration.region,
+                    PARAM_API_DOMAINNAME: props.configuration.apiDomainName,
+                    PARAM_API_SUBDOMAINNAME: props.configuration.apiSubdomainName
+                }
             })
         })
 
