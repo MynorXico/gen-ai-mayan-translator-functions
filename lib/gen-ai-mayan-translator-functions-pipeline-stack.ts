@@ -1,7 +1,7 @@
-import {Stack, StackProps, aws_iam as iam} from "aws-cdk-lib";
+import {aws_iam as iam, Stack, StackProps} from "aws-cdk-lib";
 import {Construct} from "constructs";
 import {Configuration, Environment} from "../config/types";
-import {CodePipeline, CodePipelineSource, ShellStep} from "aws-cdk-lib/pipelines";
+import {CodePipeline, CodePipelineSource, ManualApprovalStep, ShellStep} from "aws-cdk-lib/pipelines";
 import {GenAiMayanTranslatorFunctionsStage} from "./gen-ai-mayan-translator-functions-stage";
 
 interface GenAiMayanTranslatorFunctionsPipelineStackProps extends StackProps{
@@ -64,5 +64,34 @@ export class GenAiMayanTranslatorFunctionsPipelineStack extends Stack {
             environment: Environment.DEV,
             configuration: props.configuration,
         }));
+
+        // QaStage
+        const qaStage = pipeline.addStage(new GenAiMayanTranslatorFunctionsStage(this, 'QA', {
+            env: {
+                account: props.configuration.accounts.qa,
+                region: props.configuration.region
+            },
+            environment: Environment.QA,
+            configuration: props.configuration,
+        }));
+        // Add manual approval for QA Step
+        qaStage.addPre(
+            new ManualApprovalStep('Approve QA')
+        );
+
+        // Prod Stage
+        const prodStage = pipeline.addStage(new GenAiMayanTranslatorFunctionsStage(this, 'Prod', {
+            env: {
+                account: props.configuration.accounts.prod,
+                region: props.configuration.region
+            },
+            environment: Environment.PROD,
+            configuration: props.configuration,
+        }));
+        // Add manual approval for Prod Step
+        prodStage.addPre(
+            new ManualApprovalStep('Approve Prod')
+        );
+
     }
 }
