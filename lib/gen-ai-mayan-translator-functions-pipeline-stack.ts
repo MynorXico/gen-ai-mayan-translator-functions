@@ -34,25 +34,10 @@ export class GenAiMayanTranslatorFunctionsPipelineStack extends Stack {
             })
         })
 
-        // Add SSM permissions to the pipeline role
         const pipelineRole = new iam.Role(this, 'CodePipelineServiceRole', {
             assumedBy: new iam.ServicePrincipal('codepipeline.amazonaws.com'),
             description: 'Role for the CodePipeline to access SSM parameters and perform cross-account deployments',
         });
-
-        // SSM Parameter Store permissions
-        pipelineRole.addToPolicy(new iam.PolicyStatement({
-            actions: [
-                'ssm:GetParameter',
-                'ssm:GetParameters',
-                'ssm:PutParameter',
-                'ssm:AddTagsToResource',
-                'ssm:ListTagsForResource'
-            ],
-            resources: [
-                `arn:aws:ssm:${this.region}:${this.account}:parameter/gen-ai-mayan/*`
-            ]
-        }));
 
         // Cross-account deployment permissions
         pipelineRole.addToPolicy(new iam.PolicyStatement({
